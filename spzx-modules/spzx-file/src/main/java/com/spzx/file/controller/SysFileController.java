@@ -33,7 +33,7 @@ public class SysFileController
      *  2.参数名称必须 “file”,因为前端使用Element-Plus模板技术，upload组件提交请求参数名称就是"file"
      *
      *
-     *  http://139.198.127.41:9000/spzx/2024/09/23/p1_20240923105524A202.jpg
+     *  http://127.0.0.1:9000/spzx/2024/09/23/p1_20240923105524A202.jpg
      *
      *
      *  <input class="el-upload__input" name="file" accept="" type="file">

@@ -177,7 +177,7 @@ const categoryBrandList = ref([
     "categoryId": 76,
     "categoryName": "UPS电源\t",
     "brandName": "华为",
-    "logo": "http://139.198.127.41:9000/sph/20230506/华为.png"
+    "logo": "http://127.0.0.1:9000/sph/20230506/华为.png"
   }*/
 ])
 

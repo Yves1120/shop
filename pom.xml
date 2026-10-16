@@ -9,8 +9,8 @@
     <version>3.6.3</version>
 
     <name>spzx-parent</name>
-    <url>http://www.spzx.vip</url>
-    <description>若依微服务系统</description>
+    <url>https://github.com/Yves1120/shop</url>
+    <description>商城微服务平台</description>
 
     <properties>
         <spzx.version>3.6.3</spzx.version>

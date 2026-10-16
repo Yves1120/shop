@@ -1,5 +1,5 @@
 # ============================================================
-# 尚品甄选 微服务通用镜像构建文件（多阶段构建）
+# 微服务通用镜像构建文件（多阶段构建）
 #
 # 用法（SERVICE_PATH 传模块相对路径，JAR_NAME 传 jar 名称）：
 #   docker build --build-arg SERVICE_PATH=spzx-gateway --build-arg JAR_NAME=spzx-gateway -t spzx/gateway:1.0 .

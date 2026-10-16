@@ -94,7 +94,7 @@ public class AlipayServiceImpl implements IAlipayService {
                 alipayRequest.setNotifyUrl(AlipayConfig.notify_payment_url);
                 alipayRequest.setBizContent("{\"out_trade_no\":\"" + orderNo + "\","
                         + "\"total_amount\":\"" + orderInfo.getTotalAmount() + "\","
-                        + "\"subject\":\"尚品甄选-订单支付\","
+                        + "\"subject\":\"商城订单支付\","
                         + "\"product_code\":\"FAST_INSTANT_TRADE_PAY\"}");
                 form = alipayClient.pageExecute(alipayRequest).getBody();
             } catch (Exception e) {
