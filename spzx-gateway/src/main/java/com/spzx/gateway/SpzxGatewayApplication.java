@@ -3,13 +3,14 @@ package com.spzx.gateway;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import com.alibaba.cloud.sentinel.gateway.scg.SentinelSCGAutoConfiguration;
 
 /**
  * 网关启动程序
  *
  * @author spzx
  */
-@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class, SentinelSCGAutoConfiguration.class})
 public class SpzxGatewayApplication {
     public static void main(String[] args) {
         SpringApplication.run(SpzxGatewayApplication.class, args);

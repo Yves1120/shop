@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.spzx.common.core.context.SecurityContextHolder;
 import com.spzx.common.core.utils.DateUtils;
+import com.spzx.common.core.exception.ServiceException;
 import com.spzx.user.service.IRegionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -61,7 +62,7 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
         userAddress.setCreateTime(DateUtils.getNowDate());
 
         //如果是默认地址，其他地址更新为非默认地址
-        if(userAddress.getIsDefault().intValue() == 1) {
+        if(Integer.valueOf(1).equals(userAddress.getIsDefault())) {
             UserAddress updateUserAddress = new UserAddress();
             updateUserAddress.setIsDefault(0);
             userAddressMapper.update(updateUserAddress, new LambdaQueryWrapper<UserAddress>().eq(UserAddress::getUserId, userAddress.getUserId()));
@@ -78,6 +79,12 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
     @Override
     public int updateUserAddress(UserAddress userAddress)
     {
+        // 越权校验：确保只能修改自己的地址
+        UserAddress existing = userAddressMapper.selectById(userAddress.getId());
+        if (existing == null || !existing.getUserId().equals(SecurityContextHolder.getUserId())) {
+            throw new ServiceException("无权操作该地址");
+        }
+
         String provinceName = regionService.getNameByCode(userAddress.getProvinceCode());
         String cityName = regionService.getNameByCode(userAddress.getCityCode());
         String districtName = regionService.getNameByCode(userAddress.getDistrictCode());
@@ -85,12 +92,28 @@ public class UserAddressServiceImpl extends ServiceImpl<UserAddressMapper, UserA
         userAddress.setFullAddress(fullAddress);
         userAddress.setUpdateTime(DateUtils.getNowDate());
         //如果是默认地址，其他地址更新为非默认地址
-        if(userAddress.getIsDefault().intValue() == 1) {
+        if(Integer.valueOf(1).equals(userAddress.getIsDefault())) {
             UserAddress updateUserAddress = new UserAddress();
             updateUserAddress.setIsDefault(0);
-            userAddressMapper.update(updateUserAddress, new LambdaQueryWrapper<UserAddress>().eq(UserAddress::getUserId, userAddress.getUserId()));
+            userAddressMapper.update(updateUserAddress, new LambdaQueryWrapper<UserAddress>().eq(UserAddress::getUserId, SecurityContextHolder.getUserId()));
         }
         return userAddressMapper.updateById(userAddress);
+    }
+
+    /**
+     * 删除用户地址（越权校验）
+     */
+    @Override
+    public int deleteUserAddressByIds(Long[] ids)
+    {
+        Long userId = SecurityContextHolder.getUserId();
+        for (Long id : ids) {
+            UserAddress existing = userAddressMapper.selectById(id);
+            if (existing == null || !existing.getUserId().equals(userId)) {
+                throw new ServiceException("无权删除该地址");
+            }
+        }
+        return userAddressMapper.deleteBatchIds(Arrays.asList(ids));
     }
 
 }

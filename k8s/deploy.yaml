@@ -1,0 +1,138 @@
+# ============================================================
+# 尚品甄选 K8s 部署清单（以 gateway + order 为模板，其余服务同构复制）
+#
+# 用法：
+#   kubectl apply -f k8s/
+#
+# 设计要点（面试可讲）：
+# 1.滚动更新：maxUnavailable=0 + maxSurge=1，发布过程不丢流量
+# 2.就绪/存活探针：就绪不过不接流量，存活失败自动重启
+# 3.resources配额：requests=调度依据，limits=上限（配合JVM MaxRAMPercentage）
+# 4.Nacos地址走ConfigMap，改配置不用重做镜像
+# 5.Pod反亲和：多副本强制分散节点，避免单节点故障打挂整个服务
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spzx
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spzx-config
+  namespace: spzx
+data:
+  SPRING_CLOUD_NACOS_SERVER_ADDR: "nacos.spzx-system:8848"
+  SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: "nacos.spzx-system:8848"
+---
+# ---------- 网关（对外的唯一入口） ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spzx-gateway
+  namespace: spzx
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }   # 零停机发布
+  selector:
+    matchLabels: { app: spzx-gateway }
+  template:
+    metadata:
+      labels: { app: spzx-gateway }
+    spec:
+      affinity:
+        podAntiAffinity:                                  # 多副本打散到不同节点
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels: { app: spzx-gateway }
+      containers:
+        - name: spzx-gateway
+          image: spzx/spzx-gateway:latest
+          ports: [ { containerPort: 8080 } ]
+          envFrom:
+            - configMapRef: { name: spzx-config }
+          env:
+            - name: JAVA_OPTS
+              value: >-
+                -XX:+UseG1GC -XX:MaxRAMPercentage=75.0
+                -Xlog:gc*:file=/app/logs/gc.log:time,uptime,level,tags:filecount=5,filesize=50m
+                -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/dump/
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits:   { cpu: "1",  memory: 1Gi }
+          readinessProbe:            # 就绪探针：没就绪不接流量
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:             # 存活探针：卡死自动重启
+            tcpSocket: { port: 8080 }
+            initialDelaySeconds: 90
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spzx-gateway
+  namespace: spzx
+spec:
+  type: NodePort          # 生产建议换 LoadBalancer / Ingress
+  selector: { app: spzx-gateway }
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+---
+# ---------- 订单服务（其余业务服务照此模板复制改端口/名称） ----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spzx-order
+  namespace: spzx
+spec:
+  replicas: 2
+  strategy:
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  selector:
+    matchLabels: { app: spzx-order }
+  template:
+    metadata:
+      labels: { app: spzx-order }
+    spec:
+      containers:
+        - name: spzx-order
+          image: spzx/spzx-order:latest
+          ports: [ { containerPort: 9207 } ]
+          envFrom:
+            - configMapRef: { name: spzx-config }
+          env:
+            - name: JAVA_OPTS
+              value: >-
+                -XX:+UseG1GC -XX:MaxRAMPercentage=75.0
+                -Xlog:gc*:file=/app/logs/gc.log:time,uptime,level,tags:filecount=5,filesize=50m
+                -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/dump/
+          resources:
+            requests: { cpu: 250m, memory: 512Mi }
+            limits:   { cpu: "1",  memory: 1Gi }
+          readinessProbe:
+            tcpSocket: { port: 9207 }
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket: { port: 9207 }
+            initialDelaySeconds: 90
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spzx-order
+  namespace: spzx
+spec:
+  selector: { app: spzx-order }
+  ports:
+    - port: 9207
+      targetPort: 9207

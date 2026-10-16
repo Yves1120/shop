@@ -57,10 +57,18 @@ public class H5LoginService {
             throw new ServiceException("验证码必须填写");
         }
 
-        String codeValue = redisTemplate.opsForValue().get("phone:code:" + username);
-        if (!registerBody.getCode().equals(codeValue)) {
+        // Validate captcha using codeKey from Redis
+        String codeKey = registerBody.getCodeKey();
+        if (StringUtils.isEmpty(codeKey)) {
+            throw new ServiceException("验证码已失效");
+        }
+        String redisKey = "user:validate:code:" + codeKey;
+        String codeValue = redisTemplate.opsForValue().get(redisKey);
+        if (StringUtils.isEmpty(codeValue) || !code.equalsIgnoreCase(codeValue)) {
             throw new ServiceException("验证码不正确");
         }
+        // Delete used captcha
+        redisTemplate.delete(redisKey);
 
         // 注册用户信息
         UserInfo userInfo = new UserInfo();

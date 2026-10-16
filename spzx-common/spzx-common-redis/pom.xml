@@ -29,5 +29,12 @@
             <artifactId>spzx-common-core</artifactId>
         </dependency>
 
+        <!-- 单元测试：JUnit5 + Mockito + AssertJ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>

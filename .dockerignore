@@ -1,0 +1,33 @@
+# 构建上下文排除清单：加速docker build，避免敏感/无关文件进镜像
+# 前端工程（Node体系，不参与Java镜像构建）
+spzx-ui
+
+# 中间件与本地运行环境（容器内用官方镜像，不用本地二进制）
+nacos
+redis
+minio
+minio-data
+docker
+k8s
+logs
+bin
+sql
+
+# 构建产物与IDE文件
+**/target
+**/.idea
+**/*.iml
+.github
+
+# 大文件与杂项
+*.zip
+*.exe
+*.rdb
+temp_images
+*.md
+.reasonix
+reasonix.toml
+*.js
+*.bat
+*.ps1
+MinioImageUploader.java

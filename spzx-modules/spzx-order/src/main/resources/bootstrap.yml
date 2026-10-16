@@ -12,16 +12,38 @@ spring:
     active: dev
   main:
     allow-bean-definition-overriding: true #当遇到同样名字的时候，是否允许覆盖注册
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/spzx-order?characterEncoding=utf-8&useSSL=false
+    username: root
+    password: 123456
+  data:
+    redis:
+      host: localhost
+      port: 6379
   cloud:
+    sentinel:
+      enabled: false
     nacos:
       discovery:
         # 服务注册地址
-        server-addr: 192.168.6.100:8848
+        server-addr: localhost:8848
       config:
         # 配置中心地址
-        server-addr: 192.168.6.100:8848
+        server-addr: localhost:8848
         # 配置文件格式
         file-extension: yml
         # 共享配置
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*Mapper.xml
+  type-aliases-package: com.spzx.**.domain
+  global-config:
+    db-config:
+      logic-delete-field: flag
+      logic-delete-value: 2
+      logic-not-delete-value: 0

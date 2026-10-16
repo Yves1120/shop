@@ -1,0 +1,86 @@
+# ============================================================
+# 尚品甄选 CI 流水线
+#
+# 流程：push/PR 触发
+#   job1 test   -> 全仓库单元测试，失败即阻断，报告归档
+#   job2 docker -> 测试通过后按服务矩阵构建镜像（仅push触发，PR只跑测试）
+#
+# 设计要点（面试可讲）：
+# 1.质量门禁：测试不过不准构建镜像，杜绝带病上线
+# 2.矩阵构建：9个业务服务并行出镜像，fail-fast=false保证互不阻塞
+# 3.Maven依赖走setup-java缓存，GHA缓存加速镜像层
+# 4.镜像tag用commit SHA，保证版本可追溯可回滚
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  # ---------- 单元测试（质量门禁） ----------
+  test:
+    name: 单元测试
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置JDK17（含Maven依赖缓存）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: 运行单元测试
+        run: mvn -B test
+
+      - name: 归档测试报告
+        if: always()   # 失败也要留报告便于排查
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/*.txt'
+          retention-days: 7
+
+  # ---------- 镜像构建（测试通过才执行） ----------
+  docker:
+    name: 构建镜像 - ${{ matrix.name }}
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: spzx-gateway, path: spzx-gateway,             port: 8080 }
+          - { name: spzx-auth,    path: spzx-auth,                port: 9200 }
+          - { name: spzx-system,  path: spzx-modules/spzx-system,  port: 9201 }
+          - { name: spzx-product, path: spzx-modules/spzx-product, port: 9202 }
+          - { name: spzx-user,    path: spzx-modules/spzx-user,    port: 9206 }
+          - { name: spzx-cart,    path: spzx-modules/spzx-cart,    port: 9209 }
+          - { name: spzx-order,   path: spzx-modules/spzx-order,   port: 9207 }
+          - { name: spzx-channel, path: spzx-modules/spzx-channel, port: 9208 }
+          - { name: spzx-payment, path: spzx-modules/spzx-payment, port: 9210 }
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 配置Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建镜像（本地tag，配置Registry密钥后可push）
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          build-args: |
+            SERVICE_PATH=${{ matrix.path }}
+            JAR_NAME=${{ matrix.name }}
+            PORT=${{ matrix.port }}
+          tags: spzx/${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}

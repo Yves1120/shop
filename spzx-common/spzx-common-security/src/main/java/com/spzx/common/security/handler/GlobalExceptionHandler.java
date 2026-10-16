@@ -92,7 +92,8 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求参数类型不匹配'{}',发生系统异常.", requestURI, e);
-        return AjaxResult.error(String.format("请求参数类型不匹配，参数[%s]要求类型为：'%s'，但输入值为：'%s'", e.getName(), e.getRequiredType().getName(), e.getValue()));
+        String requiredTypeName = e.getRequiredType() != null ? e.getRequiredType().getName() : "未知";
+        return AjaxResult.error(String.format("请求参数类型不匹配，参数[%s]要求类型为：'%s'", e.getName(), requiredTypeName));
     }
 
     /**
@@ -103,7 +104,7 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生未知异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return AjaxResult.error("系统繁忙，请稍后重试");
     }
 
     /**
@@ -114,7 +115,7 @@ public class GlobalExceptionHandler
     {
         String requestURI = request.getRequestURI();
         log.error("请求地址'{}',发生系统异常.", requestURI, e);
-        return AjaxResult.error(e.getMessage());
+        return AjaxResult.error("系统繁忙，请稍后重试");
     }
 
     /**
@@ -135,7 +136,10 @@ public class GlobalExceptionHandler
     public Object handleMethodArgumentNotValidException(MethodArgumentNotValidException e)
     {
         log.error(e.getMessage(), e);
-        String message = e.getBindingResult().getFieldError().getDefaultMessage();
+        String message = "参数校验失败";
+        if (e.getBindingResult() != null && e.getBindingResult().getFieldError() != null) {
+            message = e.getBindingResult().getFieldError().getDefaultMessage();
+        }
         return AjaxResult.error(message);
     }
 

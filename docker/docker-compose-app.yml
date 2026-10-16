@@ -1,0 +1,108 @@
+# ============================================================
+# 尚品甄选 应用服务编排（9个业务服务）
+#
+# 用法：
+#   cd docker
+#   docker compose -f docker-compose-app.yml build   # 构建全部镜像
+#   docker compose -f docker-compose-app.yml up -d   # 启动全部服务
+#
+# 前提：中间件（Nacos/MySQL/Redis/RabbitMQ）已运行
+#   - 中间件跑在宿主机：默认 host.docker.internal 即可
+#   - 中间件也是容器：NACOS_ADDR 改为compose网络内的服务名
+#
+# 设计要点（面试可讲）：
+# 1.YAML锚点(&/*)复用公共配置，9个服务只写差异部分
+# 2.Nacos地址通过 SPRING_CLOUD_NACOS_SERVER_ADDR 环境变量注入，
+#   同一镜像不改配置即可在开发/测试/生产间迁移
+# 3.JVM参数走 JAVA_OPTS，容器内存配额的75%给堆（MaxRAMPercentage）
+# 4.仅网关暴露宿主机端口，内部服务走compose网络互通
+# ============================================================
+
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  environment: &default-env
+    TZ: Asia/Shanghai
+    SPRING_CLOUD_NACOS_SERVER_ADDR: ${NACOS_ADDR:-host.docker.internal:8848}
+    SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR: ${NACOS_ADDR:-host.docker.internal:8848}
+    JAVA_OPTS: >-
+      -XX:+UseG1GC
+      -XX:MaxRAMPercentage=75.0
+      -Xlog:gc*:file=/app/logs/gc.log:time,uptime,level,tags:filecount=5,filesize=50m
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath=/app/dump/
+
+services:
+
+  spzx-gateway:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-gateway, JAR_NAME: spzx-gateway, PORT: 8080 }
+    image: spzx/spzx-gateway:latest
+    container_name: spzx-gateway
+    ports:
+      - "8080:8080"   # 唯一入口，对外暴露
+
+  spzx-auth:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-auth, JAR_NAME: spzx-auth, PORT: 9200 }
+    image: spzx/spzx-auth:latest
+    container_name: spzx-auth
+
+  spzx-system:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-system, JAR_NAME: spzx-system, PORT: 9201 }
+    image: spzx/spzx-system:latest
+    container_name: spzx-system
+
+  spzx-product:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-product, JAR_NAME: spzx-product, PORT: 9202 }
+    image: spzx/spzx-product:latest
+    container_name: spzx-product
+
+  spzx-user:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-user, JAR_NAME: spzx-user, PORT: 9206 }
+    image: spzx/spzx-user:latest
+    container_name: spzx-user
+
+  spzx-cart:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-cart, JAR_NAME: spzx-cart, PORT: 9209 }
+    image: spzx/spzx-cart:latest
+    container_name: spzx-cart
+
+  spzx-order:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-order, JAR_NAME: spzx-order, PORT: 9207 }
+    image: spzx/spzx-order:latest
+    container_name: spzx-order
+
+  spzx-channel:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-channel, JAR_NAME: spzx-channel, PORT: 9208 }
+    image: spzx/spzx-channel:latest
+    container_name: spzx-channel
+
+  spzx-payment:
+    <<: *service-defaults
+    build:
+      context: ..
+      args: { SERVICE_PATH: spzx-modules/spzx-payment, JAR_NAME: spzx-payment, PORT: 9210 }
+    image: spzx/spzx-payment:latest
+    container_name: spzx-payment

@@ -63,6 +63,11 @@
             <artifactId>spzx-common-log</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>pro.fessional</groupId>
+            <artifactId>kaptcha</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

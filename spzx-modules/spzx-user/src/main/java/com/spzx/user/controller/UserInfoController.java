@@ -1,5 +1,6 @@
 package com.spzx.user.controller;
 
+import com.google.code.kaptcha.Producer;
 import com.spzx.common.core.context.SecurityContextHolder;
 import com.spzx.common.core.domain.R;
 import com.spzx.common.core.utils.bean.BeanUtils;
@@ -12,8 +13,12 @@ import com.spzx.common.log.enums.BusinessType;
 import com.spzx.common.security.annotation.InnerAuth;
 import com.spzx.common.security.annotation.RequiresLogin;
 import com.spzx.common.security.annotation.RequiresPermissions;
+import com.spzx.common.security.utils.SecurityUtils;
+import com.github.pagehelper.PageInfo;
 import com.spzx.user.domain.UpdateUserLogin;
 import com.spzx.user.domain.UserAddress;
+import com.spzx.user.domain.UserBrowseHistory;
+import com.spzx.user.domain.UserCollect;
 import com.spzx.user.domain.UserInfo;
 import com.spzx.user.domain.UserInfoVo;
 import com.spzx.user.service.IUserInfoService;
@@ -21,10 +26,21 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.util.FastByteArrayOutputStream;
 import org.springframework.web.bind.annotation.*;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 会员Controller
@@ -38,6 +54,12 @@ import java.util.List;
 public class UserInfoController extends BaseController {
     @Autowired
     private IUserInfoService userInfoService;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    @Resource(name = "captchaProducer")
+    private Producer captchaProducer;
 
     /**
      * 查询会员列表
@@ -113,8 +135,73 @@ public class UserInfoController extends BaseController {
     public AjaxResult getLoginUserInfo(HttpServletRequest request) {
         Long userId = SecurityContextHolder.getUserId();
         UserInfo userInfo = userInfoService.getById(userId);
+        if (userInfo == null) {
+            return AjaxResult.error("用户信息不存在");
+        }
         UserInfoVo userInfoVo = new UserInfoVo();
         BeanUtils.copyProperties(userInfo, userInfoVo);
         return success(userInfoVo);
+    }
+
+    @Operation(summary = "generate validate code")
+    @GetMapping("/generateValidateCode")
+    public R<Map<String, String>> generateValidateCode() throws IOException {
+        String code = captchaProducer.createText();
+        BufferedImage image = captchaProducer.createImage(code);
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+
+        String redisKey = "user:validate:code:" + uuid;
+        redisTemplate.opsForValue().set(redisKey, code, 5, TimeUnit.MINUTES);
+
+        FastByteArrayOutputStream outputStream = new FastByteArrayOutputStream();
+        ImageIO.write(image, "png", outputStream);
+
+        Map<String, String> result = new HashMap<>();
+        result.put("codeKey", uuid);
+        result.put("codeImage", "data:image/png;base64,"
+                + Base64.getEncoder().encodeToString(outputStream.toByteArray()));
+        return R.ok(result);
+    }
+
+    @Operation(summary = "判断是否收藏")
+    @RequiresLogin
+    @GetMapping("/isCollect/{skuId}")
+    public R<Boolean> isCollect(@PathVariable Long skuId) {
+        Long userId = SecurityUtils.getUserId();
+        return R.ok(userInfoService.isCollect(skuId, userId));
+    }
+
+    @Operation(summary = "收藏商品")
+    @RequiresLogin
+    @GetMapping("/collect/{skuId}")
+    public R collect(@PathVariable Long skuId) {
+        Long userId = SecurityUtils.getUserId();
+        userInfoService.collect(skuId, userId);
+        return R.ok();
+    }
+
+    @Operation(summary = "取消收藏")
+    @RequiresLogin
+    @GetMapping("/cancelCollect/{skuId}")
+    public R cancelCollect(@PathVariable Long skuId) {
+        Long userId = SecurityUtils.getUserId();
+        userInfoService.cancelCollect(skuId, userId);
+        return R.ok();
+    }
+
+    @Operation(summary = "用户收藏列表")
+    @RequiresLogin
+    @GetMapping("/userCollectList/{pageNo}/{pageSize}")
+    public R<PageInfo<UserCollect>> userCollectList(@PathVariable Integer pageNo, @PathVariable Integer pageSize) {
+        Long userId = SecurityUtils.getUserId();
+        return R.ok(userInfoService.userCollectList(pageNo, pageSize, userId));
+    }
+
+    @Operation(summary = "用户浏览历史列表")
+    @RequiresLogin
+    @GetMapping("/userBrowseHistoryList/{pageNo}/{pageSize}")
+    public R<PageInfo<UserBrowseHistory>> userBrowseHistoryList(@PathVariable Integer pageNo, @PathVariable Integer pageSize) {
+        Long userId = SecurityUtils.getUserId();
+        return R.ok(userInfoService.userBrowseHistoryList(pageNo, pageSize, userId));
     }
 }

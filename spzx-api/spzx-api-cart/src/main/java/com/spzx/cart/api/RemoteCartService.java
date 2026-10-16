@@ -6,8 +6,8 @@ import com.spzx.common.core.constant.SecurityConstants;
 import com.spzx.common.core.constant.ServiceNameConstants;
 import com.spzx.common.core.domain.R;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 import java.util.List;
@@ -17,4 +17,9 @@ import java.util.List;
         fallbackFactory = RemoteCartFallbackFactory.class)
 public interface RemoteCartService {
 
+    @GetMapping("/getAllChecked")
+    R<List<CartInfo>> getAllChecked(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
+
+    @DeleteMapping("/clearCheckedCart")
+    R<Void> clearCheckedCart(@RequestHeader(SecurityConstants.FROM_SOURCE) String source);
 }

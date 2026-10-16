@@ -35,4 +35,12 @@ public interface IUserAddressService extends IService<UserAddress>
      * @return 结果
      */
     public int updateUserAddress(UserAddress userAddress);
+
+    /**
+     * 删除用户地址（含越权校验）
+     *
+     * @param ids 地址ID数组
+     * @return 结果
+     */
+    public int deleteUserAddressByIds(Long[] ids);
 }

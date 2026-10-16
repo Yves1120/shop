@@ -2,8 +2,11 @@ package com.spzx.user.service;
 
 import java.util.List;
 
+import com.github.pagehelper.PageInfo;
 import com.spzx.user.domain.UpdateUserLogin;
 import com.spzx.user.domain.UserAddress;
+import com.spzx.user.domain.UserBrowseHistory;
+import com.spzx.user.domain.UserCollect;
 import com.spzx.user.domain.UserInfo;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -41,4 +44,16 @@ public interface IUserInfoService extends IService<UserInfo>
     UserInfo selectUserByUserName(String username);
 
     Boolean updateUserLogin(UpdateUserLogin updateUserLogin);
+
+    Boolean isCollect(Long skuId, Long userId);
+
+    void collect(Long skuId, Long userId);
+
+    void cancelCollect(Long skuId, Long userId);
+
+    PageInfo<UserCollect> userCollectList(Integer pageNo, Integer pageSize, Long userId);
+
+    PageInfo<UserBrowseHistory> userBrowseHistoryList(Integer pageNo, Integer pageSize, Long userId);
+
+    void saveBrowseHistory(Long skuId, Long userId);
 }

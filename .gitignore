@@ -1,46 +1,56 @@
-######################################################################
-# Build Tools
-
-.gradle
-/build/
-!gradle/wrapper/gradle-wrapper.jar
-
 target/
-!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
 
-######################################################################
-# IDE
+node_modules/
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-
-### IntelliJ IDEA ###
-.idea
-*.iws
+.idea/
+.vscode/
 *.iml
 *.ipr
+*.iws
+.classpath
+.project
+.settings/
 
-### JRebel ###
-rebel.xml
-### NetBeans ###
-nbproject/private/
-build/*
-nbbuild/
-dist/
-nbdist/
-.nb-gradle/
-
-######################################################################
-# Others
+logs/
 *.log
-*.xml.versionsBackup
-*.swp
+*.lck
+*.rdb
+*.dump
+*.hprof
 
-!*/build/*.java
-!*/build/*.html
-!*/build/*.xml
+.env
+.env.*
+!.env.example
+.reasonix/
+reasonix.toml
+/nacos/
+/redis/
+/minio/
+/minio-data/
+/temp_images/
+bin/
+
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.exe
+*.pdb
+
+start-all.bat
+health-check.bat
+h5-server.js
+minio-buckets.js
+minio-list.js
+minio-policy.js
+minio-setup.js
+minio-setup2.js
+MinioImageUploader.java
+MinioImageUploader.class
+MinioRetryUpload.class
+count-lines.ps1
+
+!.mvn/wrapper/maven-wrapper.jar

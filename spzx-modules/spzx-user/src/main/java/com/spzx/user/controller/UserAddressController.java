@@ -65,7 +65,7 @@ public class UserAddressController extends BaseController {
     @RequiresLogin
     @DeleteMapping("/{id}")
     public AjaxResult remove(@PathVariable Long id) {
-        return toAjax(userAddressService.removeById(id));
+        return toAjax(userAddressService.deleteUserAddressByIds(new Long[]{id}));
     }
 
 

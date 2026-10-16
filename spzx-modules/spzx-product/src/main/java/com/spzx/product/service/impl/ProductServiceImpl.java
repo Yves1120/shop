@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.spzx.common.core.exception.ServiceException;
 import com.spzx.common.core.utils.bean.BeanUtils;
+import com.spzx.common.redis.annotation.GuiguCache;
 import com.spzx.product.api.domain.Product;
 import com.spzx.product.api.domain.ProductDetails;
 import com.spzx.product.api.domain.ProductSku;
@@ -230,18 +231,21 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
      */
 
     @Override
+    @GuiguCache(prefix = "product:sku:", expire = 3600)
     public ProductSku getProductSku(Long skuId) {
         return productSkuMapper.selectById(skuId);
     }
 
 
     @Override
+    @GuiguCache(prefix = "product:info:", expire = 3600)
     public Product getProduct(Long id) {
         return productMapper.selectById(id);
     }
 
 
     @Override
+    @GuiguCache(prefix = "product:price:", expire = 600)
     public SkuPrice getSkuPrice(Long skuId) {
         ProductSku productSku = productSkuMapper.selectOne(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getId, skuId).select(ProductSku::getSalePrice, ProductSku::getMarketPrice));
         SkuPrice skuPrice = new SkuPrice();
@@ -251,12 +255,14 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
 
 
     @Override
+    @GuiguCache(prefix = "product:details:", expire = 3600)
     public ProductDetails getProductDetails(Long id) {
         return productDetailsMapper.selectOne(new LambdaQueryWrapper<ProductDetails>().eq(ProductDetails::getProductId, id));
     }
 
 
     @Override
+    @GuiguCache(prefix = "product:spec:", expire = 3600)
     public Map<String, Long> getSkuSpecValue(Long id) {
         List<ProductSku> productSkuList = productSkuMapper.selectList(new LambdaQueryWrapper<ProductSku>().eq(ProductSku::getProductId, id).select(ProductSku::getId, ProductSku::getSkuSpec));
         Map<String, Long> skuSpecValueMap = new HashMap<>();

@@ -33,7 +33,7 @@
             <if test="userId != null">
                 and user_id = #{userId}
             </if>
-            <if test="orderStatus != null">
+            <if test="orderStatus != null and orderStatus != -1">
                 and order_status = #{orderStatus}
             </if>
             and del_flag = '0'
